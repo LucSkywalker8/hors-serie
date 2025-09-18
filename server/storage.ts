@@ -272,8 +272,8 @@ export class MemStorage implements IStorage {
 
     // Create default admin user
     await this.createUser({
-      username: "admin",
-      password: await bcrypt.hash("admin123", 10)
+      username: "luc",
+      password: await bcrypt.hash("Menard1983!!", 10)
     });
   }
 
