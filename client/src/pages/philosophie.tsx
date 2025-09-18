@@ -121,7 +121,7 @@ export default function PhilosophiePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center p-8 bg-gray-700 rounded-2xl">
-              <div className="text-chartreuse text-5xl font-bold mb-4">100%</div>
+              <div className="text-chartreuse text-5xl font-bold mb-4">Satisfaction Client</div>
               <h3 className="text-white text-xl font-semibold mb-3">Satisfaction Client</h3>
               <p className="text-gray-300">
                 Chaque client bénéficie d'un accompagnement personnalisé jusqu'à la finalisation de son projet.
