@@ -1,0 +1,137 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import PropertyFilters from "@/components/property/property-filters";
+import PropertyCard from "@/components/property/property-card";
+import AdvancedSearch from "@/components/property/advanced-search";
+import { Button } from "@/components/ui/button";
+import type { Property } from "@shared/schema";
+
+export default function Properties() {
+  const [activeFilter, setActiveFilter] = useState("tous");
+  const [searchFilters, setSearchFilters] = useState<{
+    type?: string;
+    city?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    minSurface?: number;
+  } | null>(null);
+
+  const { data: properties, isLoading } = useQuery<Property[]>({
+    queryKey: ["/api/properties"],
+    enabled: !searchFilters && activeFilter === "tous",
+  });
+
+  const { data: filteredProperties, isLoading: isFilteredLoading } = useQuery<Property[]>({
+    queryKey: ["/api/properties/type", activeFilter],
+    enabled: !searchFilters && activeFilter !== "tous",
+  });
+
+  const { data: searchResults, isLoading: isSearchLoading } = useQuery<Property[]>({
+    queryKey: ["/api/properties/search", searchFilters],
+    queryFn: async () => {
+      if (!searchFilters) return [];
+      
+      const params = new URLSearchParams();
+      if (searchFilters.type) params.append('type', searchFilters.type);
+      if (searchFilters.city) params.append('city', searchFilters.city);
+      if (searchFilters.minPrice) params.append('minPrice', searchFilters.minPrice.toString());
+      if (searchFilters.maxPrice) params.append('maxPrice', searchFilters.maxPrice.toString());
+      if (searchFilters.minSurface) params.append('minSurface', searchFilters.minSurface.toString());
+      
+      const response = await fetch(`/api/properties/search?${params.toString()}`);
+      if (!response.ok) throw new Error('Search failed');
+      return response.json();
+    },
+    enabled: !!searchFilters,
+  });
+
+  const handleAdvancedSearch = (filters: {
+    type?: string;
+    city?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    minSurface?: number;
+  }) => {
+    setSearchFilters(filters);
+    setActiveFilter("tous"); // Reset filter when using advanced search
+  };
+
+  const handleFilterChange = (filter: string) => {
+    setActiveFilter(filter);
+    setSearchFilters(null); // Reset advanced search when using type filter
+  };
+
+  let displayProperties: Property[] = [];
+  let loading = false;
+
+  if (searchFilters) {
+    displayProperties = searchResults || [];
+    loading = isSearchLoading;
+  } else if (activeFilter === "tous") {
+    displayProperties = properties || [];
+    loading = isLoading;
+  } else {
+    displayProperties = filteredProperties || [];
+    loading = isFilteredLoading;
+  }
+
+  return (
+    <div className="pt-20">
+      <AdvancedSearch onSearch={handleAdvancedSearch} />
+      
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h1 className="font-display font-light text-4xl text-gray-900 mb-6">
+              Tous Nos <span className="text-gradient">Biens</span>
+            </h1>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Découvrez l'ensemble de notre sélection de propriétés d'exception dans le Maine-et-Loire.
+            </p>
+          </div>
+
+          <PropertyFilters activeFilter={activeFilter} onFilterChange={handleFilterChange} />
+
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[...Array(9)].map((_, i) => (
+                <div key={i} className="property-card rounded-2xl overflow-hidden animate-pulse">
+                  <div className="h-64 bg-gray-800"></div>
+                  <div className="p-6 space-y-4">
+                    <div className="h-4 bg-gray-800 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-800 rounded w-1/2"></div>
+                    <div className="h-12 bg-gray-800 rounded"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : displayProperties && displayProperties.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {displayProperties.map((property) => (
+                <PropertyCard key={property.id} property={property} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <h3 className="font-display font-light text-2xl text-gray-900 mb-4">
+                Aucun bien trouvé
+              </h3>
+              <p className="text-gray-600 mb-8">
+                Aucune propriété ne correspond à vos critères de recherche.
+              </p>
+              <Button
+                onClick={() => {
+                  setActiveFilter("tous");
+                  setSearchFilters(null);
+                }}
+                className="btn-chartreuse px-6 py-3 rounded-full"
+              >
+                Voir tous les biens
+              </Button>
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
